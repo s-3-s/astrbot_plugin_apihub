@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⚡ APIHub 管理面板</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root{
+  --bg:#0c0f18;--bg2:#13182a;--bg3:#1a2035;--bg4:#222840;
+  --border:#2a3350;--accent:#5b8df6;--a2:#7c5cfc;--a3:#3dd68c;
+  --red:#f75f6e;--yellow:#f7c948;--text:#dde3f0;--text2:#7a85a0;--r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+header{background:var(--bg2);border-bottom:1px solid var(--border);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;gap:16px;}
+.logo{font-size:15px;font-weight:700;white-space:nowrap;}
+.logo em{color:var(--accent);font-style:normal;}
+.hright{display:flex;align-items:center;gap:14px;}
+.nsfw-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);}
+.switch{position:relative;width:38px;height:21px;flex-shrink:0;}
+.switch input{display:none;}
+.slider{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--border);border-radius:21px;cursor:pointer;transition:.2s;}
+.slider::before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:var(--text2);border-radius:50%;transition:.2s;}
+input:checked+.slider{background:var(--a2);border-color:var(--a2);}
+input:checked+.slider::before{transform:translateX(17px);background:#fff;}
+.layout{display:flex;flex:1;min-height:0;}
+aside{width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.sb-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sb-head span{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+.sb-actions{display:flex;gap:4px;}
+.pool-list{flex:1;overflow-y:auto;padding:6px;}
+.pool-item{padding:9px 10px;padding-right:72px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-bottom:2px;position:relative;transition:.12s;}
+.pool-item:hover{background:var(--bg3);}
+.pool-item.active{background:rgba(91,141,246,.1);border:1px solid rgba(91,141,246,.2);}
+.pool-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dot-on{background:var(--a3);}
+.dot-off{background:var(--text2);}
+.pool-name{font-size:13px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:4px;}
+.pool-meta{font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.p-btns{display:none;position:absolute;right:4px;top:50%;transform:translateY(-50%);gap:2px;background:var(--bg3);border-radius:5px;padding:1px 2px;}
+.pool-item:hover .p-btns{display:flex;}
+.pool-item:hover .pool-meta{visibility:hidden;}
+.ib{background:none;border:none;cursor:pointer;padding:3px 4px;border-radius:4px;font-size:12px;color:var(--text2);}
+.ib:hover{background:var(--bg4);color:var(--text);}
+.ib.d:hover{color:var(--red);}
+.sb-footer{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:5px;}
+.content{flex:1;display:flex;flex-direction:column;min-width:0;}
+.c-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;}
+.c-title{font-size:14px;font-weight:600;}
+.c-desc{font-size:11px;color:var(--text2);}
+.spacer{flex:1;}
+.search{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 11px;color:var(--text);font-family:inherit;font-size:12px;outline:none;width:160px;transition:.15s;}
+.search:focus{border-color:var(--accent);}
+.search::placeholder{color:var(--text2);}
+.btn{padding:7px 14px;border:none;border-radius:7px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:5px;}
+.btn:hover{opacity:.85;}
+.btn:active{transform:scale(.97);}
+.btn-p{background:var(--accent);color:#fff;}
+.btn-g{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.btn-d{background:rgba(247,95,110,.1);color:var(--red);border:1px solid rgba(247,95,110,.15);}
+.btn-s{padding:5px 10px;font-size:11px;}
+.t-wrap{flex:1;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead tr{background:var(--bg3);position:sticky;top:0;z-index:5;}
+th{padding:9px 14px;text-align:left;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+td{padding:10px 14px;border-bottom:1px solid rgba(42,51,80,.4);}
+tbody tr:hover{background:rgba(91,141,246,.03);}
+.n-cell{font-weight:600;font-size:13px;}
+.cmd-chip{display:inline-block;background:rgba(91,141,246,.1);color:var(--accent);border:1px solid rgba(91,141,246,.2);border-radius:5px;padding:1px 7px;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.url-cell{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;}
+.bi{background:rgba(61,214,140,.1);color:var(--a3);}
+.bj{background:rgba(91,141,246,.1);color:var(--accent);}
+.bt{background:rgba(247,201,72,.1);color:var(--yellow);}
+.bv{background:rgba(247,95,110,.1);color:var(--red);}
+.ba{background:rgba(247,201,72,.15);color:#f0a500;}
+.br{background:rgba(124,92,252,.1);color:var(--a2);}
+.s-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;}
+.nsfw-t{font-size:9px;color:var(--red);border:1px solid rgba(247,95,110,.25);border-radius:3px;padding:0 4px;margin-left:3px;}
+.ra{display:flex;gap:5px;flex-wrap:wrap;}
+.sb{padding:3px 8px;font-size:11px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;font-weight:500;}
+.sb:hover{opacity:.8;}
+.sb-tog-on{background:rgba(247,95,110,.1);color:var(--red);}
+.sb-tog-off{background:rgba(61,214,140,.1);color:var(--a3);}
+.sb-e{background:rgba(91,141,246,.1);color:var(--accent);}
+.sb-t{background:rgba(124,92,252,.1);color:var(--a2);}
+.sb-d{background:rgba(247,95,110,.08);color:var(--red);}
+.empty{padding:50px;text-align:center;color:var(--text2);font-size:13px;}
+.mb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);z-index:100;align-items:center;justify-content:center;}
+.mb.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;width:540px;max-width:96vw;max-height:92vh;overflow-y:auto;animation:pop .16s ease;}
+.modal.wide{width:680px;}
+@keyframes pop{from{transform:scale(.93);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h2{font-size:16px;margin-bottom:18px;}
+.fg{margin-bottom:13px;}
+.fg label{display:block;font-size:10px;color:var(--text2);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 11px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:.15s;resize:vertical;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent);}
+.fg select option{background:var(--bg2);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;}
+.mf{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+.ck-row{display:flex;align-items:center;gap:8px;}
+.test-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:14px;}
+.test-meta{font-size:11px;color:var(--text2);margin-bottom:10px;display:flex;gap:14px;flex-wrap:wrap;}
+.test-meta .ok{color:var(--a3);}
+.test-meta .err-c{color:var(--red);}
+.test-box img{max-width:100%;max-height:300px;border-radius:6px;display:block;}
+.test-box pre{font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;color:var(--text2);max-height:260px;overflow-y:auto;}
+.raw-toggle{font-size:11px;color:var(--accent);cursor:pointer;margin-top:8px;display:inline-block;}
+.raw-block{display:none;margin-top:8px;}
+.raw-block.show{display:block;}
+.ia{width:100%;min-height:100px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;resize:vertical;}
+.ia:focus{border-color:var(--accent);}
+.pv-list{max-height:180px;overflow-y:auto;margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;}
+.pv-item{padding:7px 12px;border-bottom:1px solid rgba(42,51,80,.4);font-size:11px;display:flex;gap:8px;align-items:center;}
+.pv-item:last-child{border-bottom:none;}
+.pv-name{font-weight:600;min-width:100px;}
+.pv-url{font-family:'JetBrains Mono',monospace;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+#toast{position:fixed;bottom:22px;right:22px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:12px;z-index:999;transform:translateY(14px);opacity:0;transition:.2s;pointer-events:none;max-width:280px;}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast.ok{border-left:3px solid var(--a3);}
+#toast.err{border-left:3px solid var(--red);}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">⚡ <em>API</em>Hub 管理面板</div>
+  <div class="hright">
+    <div class="nsfw-row">
+      <span>NSFW</span>
+      <label class="switch"><input type="checkbox" id="nsfwSw"><span class="slider"></span></label>
+      <span id="nsfwTxt" style="min-width:18px">关</span>
+    </div>
+    <button class="btn btn-g btn-s" onclick="load()">🔄 刷新</button>
+  </div>
+</header>
+<div class="layout">
+  <aside>
+    <div class="sb-head">
+      <span>API 池</span>
+      <div class="sb-actions">
+        <button class="ib" onclick="openPoolModal(null)" title="新建池">＋</button>
+      </div>
+    </div>
+    <div class="pool-list" id="poolList"></div>
+    <div class="sb-footer">
+      <button class="btn btn-g btn-s" style="justify-content:center" onclick="openImportModal()">📥 批量导入 JSON</button>
+      <button class="btn btn-g btn-s" style="justify-content:center" onclick="exportPool()">📤 导出当前池</button>
+    </div>
+  </aside>
+  <div class="content">
+    <div class="c-head">
+      <div>
+        <div class="c-title" id="ctitle">请选择 API 池</div>
+        <div class="c-desc" id="cdesc"></div>
+      </div>
+      <div class="spacer"></div>
+      <input class="search" id="searchQ" placeholder="🔍 搜索..." oninput="renderApis()">
+      <button class="btn btn-p btn-s" id="addBtn" style="display:none" onclick="openItemModal(null)">＋ 添加 API</button>
+      <div id="batchBar" style="display:none;align-items:center;gap:6px;">
+        <span id="selCount" style="font-size:12px;color:var(--text2)">已选 0 项</span>
+        <button class="btn btn-s" style="background:rgba(247,201,72,.1);color:var(--yellow);border:none" onclick="batchToggle()">批量禁用/启用</button>
+        <button class="btn btn-s btn-d" onclick="batchDelete()">批量删除</button>
+        <button class="btn btn-s btn-g" onclick="clearSelection()">取消</button>
+      </div>
+    </div>
+    <div class="t-wrap">
+      <div class="empty" id="emptyEl">👈 从左侧选择一个 API 池</div>
+      <table id="apiTbl" style="display:none">
+        <thead><tr>
+          <th style="width:36px"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" style="cursor:pointer;accent-color:var(--accent)"></th>
+          <th>API 名称</th><th>触发命令</th><th>URL</th><th>类型</th><th>状态</th><th>操作</th>
+        </tr></thead>
+        <tbody id="apiBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 新建/编辑池 -->
+<div class="mb" id="poolModal">
+  <div class="modal" style="width:440px">
+    <h2 id="pm_title">新建 API 池</h2>
+    <div class="fg"><label>池名称 *</label><input id="pm_name" placeholder="如：vvhan、枫林API"></div>
+    <div class="fg"><label>描述</label><input id="pm_desc" placeholder="简短描述"></div>
+    <div class="mf">
+      <button class="btn btn-g" onclick="closeModal('poolModal')">取消</button>
+      <button class="btn btn-p" onclick="submitPool()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量导入 -->
+<div class="mb" id="importModal">
+  <div class="modal" style="width:580px">
+    <h2>📥 批量导入 API</h2>
+    <div class="fg"><label>目标池</label><select id="imp_pool"></select></div>
+    <div class="fg">
+      <label>JSON 数组（每项需含 name、url、type，可选 trigger_cmd、json_path 等）</label>
+      <textarea class="ia" id="imp_json" rows="7" placeholder='[{"name":"随机壁纸","url":"https://api.vvhan.com/api/wallpaper/acg","type":"image","trigger_cmd":"壁纸","desc":"随机ACG壁纸"}]' oninput="previewImport()"></textarea>
+    </div>
+    <div id="imp_preview"></div>
+    <div class="mf">
+      <button class="btn btn-g" onclick="closeModal('importModal')">取消</button>
+      <button class="btn btn-p" onclick="submitImport()">导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 添加/编辑 API -->
+<div class="mb" id="itemModal">
+  <div class="modal wide">
+    <h2 id="im_title">添加 API</h2>
+    <input type="hidden" id="im_old">
+    <div class="row2">
+      <div class="fg"><label>API 名称 *</label><input id="im_name" placeholder="如：随机壁纸"></div>
+      <div class="fg"><label>触发命令 <span style="color:var(--text2);font-size:9px">（用户发 /触发词 调用，留空=API名称）</span></label><input id="im_cmd" placeholder="如：壁纸"></div>
+    </div>
+    <div class="fg"><label>请求 URL *</label><input id="im_url" placeholder="https://api.example.com/xxx"></div>
+    <div class="row3">
+      <div class="fg"><label>返回类型</label>
+        <select id="im_type">
+          <option value="image">image 图片</option>
+          <option value="json">json 数据</option>
+          <option value="text">text 文本</option>
+          <option value="video">video 视频</option>
+          <option value="audio">audio 音频</option>
+          <option value="random">random 随机</option>
+        </select>
+      </div>
+      <div class="fg"><label>JSON 取值路径</label><input id="im_jp" placeholder="如：data.url（可选）"></div>
+      <div class="fg"><label>描述</label><input id="im_desc" placeholder="简短描述"></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>参数 Key（可选）</label><input id="im_argk" placeholder="如：city"></div>
+      <div class="fg"><label>参数提示</label><input id="im_argh" placeholder="如：城市名，如：北京"></div>
+    </div>
+    <div class="fg">
+      <label>随机参数列表 <span style="color:var(--text2);font-size:9px">（填写后每次调用从列表中随机取一个值填入参数Key，用逗号分隔）</span></label>
+      <input id="im_randargs" placeholder="如：一个富贵,李佳琦,疯狂小杨哥（逗号分隔）">
+    </div>
+    <div class="fg">
+      <label>输出模板 <span style="color:var(--text2);font-size:9px">（用 {路径} 提取JSON字段，直接回车换行，留空则输出原始内容）</span></label>
+      <textarea id="im_tpl" rows="4" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 11px;color:var(--text);font-family:inherit;font-size:12px;outline:none;resize:vertical;" placeholder="如：
+🎬 视频解析完成
+━━━━━━━━━━━━
+📺 标题：{data.series}
+🔗 链接：{data.url}"></textarea>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>自定义请求头 JSON（可选）</label><input id="im_headers" placeholder='{"Authorization":"Bearer xxx"}'></div>
+      <div class="fg"><label>固定附加参数 JSON（可选）</label><input id="im_params" placeholder='{"format":"json"}'></div>
+    </div>
+    <div class="ck-row">
+      <label class="switch" style="margin:0"><input type="checkbox" id="im_nsfw"><span class="slider"></span></label>
+      <label for="im_nsfw" style="font-size:12px;color:var(--text2)">NSFW 内容</label>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" onclick="closeModal('itemModal')">取消</button>
+      <button class="btn btn-g" style="color:var(--a2)" onclick="quickTest()">🔬 快速测试</button>
+      <button class="btn btn-p" onclick="submitItem()">保存</button>
+    </div>
+    <div id="qt_result"></div>
+  </div>
+</div>
+
+<!-- 调试 -->
+<div class="mb" id="testModal">
+  <div class="modal wide">
+    <h2>🔬 API 调试台</h2>
+    <div class="row2">
+      <div class="fg"><label>URL</label><input id="tm_url"></div>
+      <div class="fg"><label>类型</label>
+        <select id="tm_type">
+          <option value="image">image</option><option value="json">json</option>
+          <option value="text">text</option><option value="video">video</option>
+          <option value="audio">audio</option><option value="random">random</option>
+        </select>
+      </div>
+    </div>
+    <div class="row3">
+      <div class="fg"><label>JSON 路径</label><input id="tm_jp" placeholder="如：data.url"></div>
+      <div class="fg"><label>参数 Key</label><input id="tm_ak" placeholder="如：city"></div>
+      <div class="fg"><label>参数值</label><input id="tm_av" placeholder="如：北京"></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>自定义请求头 JSON</label><input id="tm_headers" placeholder='{"Token":"xxx"}'></div>
+      <div class="fg"><label>固定附加参数 JSON</label><input id="tm_params" placeholder='{"format":"json"}'></div>
+    </div>
+    <div class="mf" style="margin-bottom:0">
+      <button class="btn btn-g" onclick="closeModal('testModal')">关闭</button>
+      <button class="btn btn-p" onclick="runTest('testResult')">▶ 发送请求</button>
+    </div>
+    <div id="testResult"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var D = {pools:{}, nsfw_enabled:false};
+var cur = null, editPool = null;
+
+function load() {
+  fetch('/api/data').then(function(r){ return r.json(); }).then(function(data){
+    D = data;
+    document.getElementById('nsfwSw').checked = D.nsfw_enabled;
+    document.getElementById('nsfwTxt').textContent = D.nsfw_enabled ? '开' : '关';
+    renderPools();
+    if(cur && D.pools[cur]) renderApis();
+    else if(!cur){
+      var keys = Object.keys(D.pools);
+      if(keys.length) sel(keys[0]);
+    }
+  }).catch(function(e){ toast('加载失败：' + e.message, 'err'); });
+}
+
+function renderPools() {
+  var el = document.getElementById('poolList');
+  var ps = D.pools;
+  var keys = Object.keys(ps);
+  if(!keys.length){
+    el.innerHTML = '<div class="empty" style="padding:20px;font-size:12px">暂无池，点击 ＋ 创建</div>';
+    return;
+  }
+  el.innerHTML = keys.map(function(n){
+    var p = ps[n];
+    var cnt = Object.keys(p.apis||{}).length;
+    var en = p.enabled !== false;
+    return '<div class="pool-item' + (cur===n?' active':'') + '" onclick="sel(\'' + esc(n) + '\')">' +
+      '<div class="pool-dot ' + (en?'dot-on':'dot-off') + '"></div>' +
+      '<div class="pool-name">' + esc(n) + '</div>' +
+      '<div class="pool-meta">' + cnt + '个</div>' +
+      '<div class="p-btns">' +
+        '<button class="ib" onclick="event.stopPropagation();openPoolModal(\'' + esc(n) + '\')" title="编辑">✏️</button>' +
+        '<button class="ib" onclick="event.stopPropagation();togglePool(\'' + esc(n) + '\')" title="' + (en?'禁用':'启用') + '">' + (en?'⏸':'▶') + '</button>' +
+        '<button class="ib d" onclick="event.stopPropagation();delPool(\'' + esc(n) + '\')" title="删除">🗑</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function sel(name) {
+  cur = name;
+  renderPools();
+  var p = D.pools[name];
+  document.getElementById('ctitle').textContent = name;
+  document.getElementById('cdesc').textContent = p.desc || '';
+  document.getElementById('addBtn').style.display = '';
+  document.getElementById('emptyEl').style.display = 'none';
+  document.getElementById('apiTbl').style.display = '';
+  clearSelection();
+  renderApis();
+}
+
+function renderApis() {
+  if(!cur) return;
+  var q = document.getElementById('searchQ').value.toLowerCase();
+  var apis = (D.pools[cur] && D.pools[cur].apis) || {};
+  var typeMap = {image:'bi',json:'bj',text:'bt',video:'bv',audio:'ba',random:'br'};
+  var rows = Object.entries(apis).filter(function(e){
+    var n = e[0], a = e[1];
+    return !q || n.toLowerCase().includes(q) || (a.desc||'').toLowerCase().includes(q) || (a.trigger_cmd||'').toLowerCase().includes(q);
+  });
+  var body = document.getElementById('apiBody');
+  if(!rows.length){
+    body.innerHTML = '<tr><td colspan="7" class="empty">暂无 API</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map(function(e){
+    var n = e[0], a = e[1];
+    var en = a.enabled !== false;
+    var cmd = a.trigger_cmd || n;
+    var tc = typeMap[a.type] || 'bi';
+    return '<tr>' +
+      '<td><input type="checkbox" class="row-ck" value="' + esc(n) + '" onchange="onRowCheck()" style="cursor:pointer;accent-color:var(--accent)"></td>' +
+      '<td class="n-cell">' + esc(n) + (a.nsfw?'<span class="nsfw-t">🔞</span>':'') + '</td>' +
+      '<td><span class="cmd-chip">/' + esc(cmd) + '</span></td>' +
+      '<td><div class="url-cell" title="' + esc(a.url) + '">' + esc(a.url) + '</div></td>' +
+      '<td><span class="badge ' + tc + '">' + a.type + '</span></td>' +
+      '<td><span class="s-dot ' + (en?'dot-on':'dot-off') + '"></span>' + (en?'启用':'禁用') + '</td>' +
+      '<td><div class="ra">' +
+        '<button class="sb ' + (en?'sb-tog-on':'sb-tog-off') + '" onclick="togItem(\'' + esc(n) + '\')">' + (en?'禁用':'启用') + '</button>' +
+        '<button class="sb sb-e" onclick="openItemModal(\'' + esc(n) + '\')">编辑</button>' +
+        '<button class="sb sb-t" onclick="openTestModal(\'' + esc(n) + '\')">调试</button>' +
+        '<button class="sb sb-d" onclick="delItem(\'' + esc(n) + '\')">删除</button>' +
+      '</div></td></tr>';
+  }).join('');
+}
+
+// ── 池操作 ────────────────────────────────────────────
+
+function openPoolModal(name) {
+  editPool = name || null;
+  document.getElementById('pm_title').textContent = name ? '编辑池' : '新建 API 池';
+  document.getElementById('pm_name').value = name || '';
+  document.getElementById('pm_desc').value = name ? (D.pools[name] && D.pools[name].desc || '') : '';
+  openModal('poolModal');
+}
+
+function submitPool() {
+  var name = document.getElementById('pm_name').value.trim();
+  var desc = document.getElementById('pm_desc').value.trim();
+  if(!name){ toast('池名不能为空','err'); return; }
+  var url = editPool ? '/api/pool/update' : '/api/pool/add';
+  var body = editPool ? {name:editPool,new_name:name,desc:desc} : {name:name,desc:desc};
+  post(url, body).then(function(r){
+    if(r.ok){ closeModal('poolModal'); load(); if(!editPool) setTimeout(function(){ sel(name); }, 300); toast(r.msg||'成功','ok'); }
+    else toast(r.msg,'err');
+  });
+}
+
+function delPool(name) {
+  if(!confirm('删除池「' + name + '」及所有 API？')) return;
+  post('/api/pool/delete', {name:name}).then(function(r){
+    if(r.ok){
+      if(cur===name){
+        cur = null;
+        document.getElementById('emptyEl').style.display = '';
+        document.getElementById('apiTbl').style.display = 'none';
+        document.getElementById('addBtn').style.display = 'none';
+      }
+      load(); toast('已删除','ok');
+    } else toast(r.msg,'err');
+  });
+}
+
+function togglePool(name) {
+  post('/api/pool/toggle', {name:name}).then(function(){ load(); });
+}
+
+// ── API 操作 ──────────────────────────────────────────
+
+function openItemModal(name) {
+  var fields = ['im_name','im_cmd','im_url','im_jp','im_desc','im_argk','im_argh','im_headers','im_params','im_randargs','im_tpl'];
+  fields.forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('im_type').value = 'image';
+  document.getElementById('im_nsfw').checked = false;
+  document.getElementById('im_old').value = '';
+  document.getElementById('qt_result').innerHTML = '';
+  document.getElementById('im_title').textContent = name ? '编辑 API' : '添加 API';
+  if(name){
+    var a = D.pools[cur] && D.pools[cur].apis && D.pools[cur].apis[name];
+    if(a){
+      document.getElementById('im_old').value   = name;
+      document.getElementById('im_name').value  = name;
+      document.getElementById('im_cmd').value   = a.trigger_cmd || '';
+      document.getElementById('im_url').value   = a.url || '';
+      document.getElementById('im_type').value  = a.type || 'image';
+      document.getElementById('im_jp').value    = a.json_path || '';
+      document.getElementById('im_desc').value  = a.desc || '';
+      document.getElementById('im_argk').value  = a.arg_key || '';
+      document.getElementById('im_argh').value  = a.arg_hint || '';
+      document.getElementById('im_nsfw').checked = !!a.nsfw;
+      if(a.rand_args && a.rand_args.length)
+        document.getElementById('im_randargs').value = Array.isArray(a.rand_args) ? a.rand_args.join(',') : a.rand_args;
+      if(a.output_template)
+        document.getElementById('im_tpl').value = a.output_template;
+      if(a.headers && Object.keys(a.headers).length)
+        document.getElementById('im_headers').value = JSON.stringify(a.headers);
+      if(a.extra_params && Object.keys(a.extra_params).length)
+        document.getElementById('im_params').value = JSON.stringify(a.extra_params);
+    }
+  }
+  openModal('itemModal');
+}
+
+function getItemData() {
+  var headers = {}, extra = {};
+  try{ headers = JSON.parse(document.getElementById('im_headers').value || '{}'); }catch(e){}
+  try{ extra = JSON.parse(document.getElementById('im_params').value || '{}'); }catch(e){}
+  return {
+    pool:        cur,
+    old_name:    document.getElementById('im_old').value,
+    name:        document.getElementById('im_name').value.trim(),
+    trigger_cmd: document.getElementById('im_cmd').value.trim(),
+    url:         document.getElementById('im_url').value.trim(),
+    type:        document.getElementById('im_type').value,
+    json_path:   document.getElementById('im_jp').value.trim() || null,
+    desc:        document.getElementById('im_desc').value.trim(),
+    arg_key:     document.getElementById('im_argk').value.trim() || null,
+    arg_hint:    document.getElementById('im_argh').value.trim() || null,
+    nsfw:        document.getElementById('im_nsfw').checked,
+    rand_args:        document.getElementById('im_randargs').value.trim(),
+    output_template:  document.getElementById('im_tpl').value.trim(),
+    headers:     headers,
+    extra_params:extra
+  };
+}
+
+function submitItem() {
+  var d = getItemData();
+  if(!d.name || !d.url){ toast('名称和URL不能为空','err'); return; }
+  var url = d.old_name ? '/api/item/update' : '/api/item/add';
+  post(url, d).then(function(r){
+    if(r.ok){ closeModal('itemModal'); load(); setTimeout(function(){ if(cur) renderApis(); }, 300); toast(r.msg||'保存成功','ok'); }
+    else toast(r.msg,'err');
+  });
+}
+
+function delItem(name) {
+  if(!confirm('删除「' + name + '」？')) return;
+  post('/api/item/delete', {pool:cur, name:name}).then(function(r){
+    if(r.ok){ load(); setTimeout(function(){ renderApis(); }, 200); toast('已删除','ok'); }
+    else toast(r.msg,'err');
+  });
+}
+
+function togItem(name) {
+  post('/api/item/toggle', {pool:cur, name:name}).then(function(r){
+    if(r.ok){ D.pools[cur].apis[name].enabled = r.enabled; renderApis(); }
+    else toast(r.msg,'err');
+  });
+}
+
+// ── 多选批量 ─────────────────────────────────────────
+
+function getSelected() {
+  return Array.prototype.slice.call(document.querySelectorAll('.row-ck:checked')).map(function(c){ return c.value; });
+}
+
+function toggleSelectAll(el) {
+  document.querySelectorAll('.row-ck').forEach(function(c){ c.checked = el.checked; });
+  onRowCheck();
+}
+
+function onRowCheck() {
+  var selected = getSelected();
+  var total = document.querySelectorAll('.row-ck').length;
+  var bar = document.getElementById('batchBar');
+  var selCount = document.getElementById('selCount');
+  var allCk = document.getElementById('selectAll');
+  if(selected.length > 0){
+    bar.style.display = 'flex';
+    selCount.textContent = '已选 ' + selected.length + ' 项';
+  } else {
+    bar.style.display = 'none';
+  }
+  if(allCk){
+    allCk.indeterminate = selected.length > 0 && selected.length < total;
+    allCk.checked = total > 0 && selected.length === total;
+  }
+}
+
+function clearSelection() {
+  document.querySelectorAll('.row-ck').forEach(function(c){ c.checked = false; });
+  var allCk = document.getElementById('selectAll');
+  if(allCk){ allCk.checked = false; allCk.indeterminate = false; }
+  document.getElementById('batchBar').style.display = 'none';
+}
+
+function batchDelete() {
+  var names = getSelected();
+  if(!names.length) return;
+  if(!confirm('确定删除选中的 ' + names.length + ' 个 API？')) return;
+  var done = 0;
+  function next(i) {
+    if(i >= names.length){
+      clearSelection(); load(); setTimeout(function(){ renderApis(); }, 300);
+      toast('已删除 ' + done + ' 个 API','ok'); return;
+    }
+    post('/api/item/delete', {pool:cur, name:names[i]}).then(function(r){
+      if(r.ok){ done++; if(D.pools[cur] && D.pools[cur].apis) delete D.pools[cur].apis[names[i]]; }
+      next(i+1);
+    });
+  }
+  next(0);
+}
+
+function batchToggle() {
+  var names = getSelected();
+  if(!names.length) return;
+  var apis = (D.pools[cur] && D.pools[cur].apis) || {};
+  var anyEnabled = names.some(function(n){ return apis[n] && apis[n].enabled !== false; });
+  var done = 0;
+  function next(i) {
+    if(i >= names.length){
+      clearSelection(); renderApis();
+      toast((anyEnabled?'已禁用':'已启用') + ' ' + done + ' 个 API','ok'); return;
+    }
+    var n = names[i];
+    var curEn = apis[n] && apis[n].enabled !== false;
+    if(curEn === anyEnabled){
+      post('/api/item/toggle', {pool:cur, name:n}).then(function(r){
+        if(r.ok){ done++; D.pools[cur].apis[n].enabled = r.enabled; }
+        next(i+1);
+      });
+    } else { next(i+1); }
+  }
+  next(0);
+}
+
+// ── 调试 ──────────────────────────────────────────────
+
+function openTestModal(name) {
+  document.getElementById('testResult').innerHTML = '';
+  if(name){
+    var a = D.pools[cur] && D.pools[cur].apis && D.pools[cur].apis[name];
+    if(a){
+      document.getElementById('tm_url').value    = a.url || '';
+      document.getElementById('tm_type').value   = a.type || 'image';
+      document.getElementById('tm_jp').value     = a.json_path || '';
+      document.getElementById('tm_ak').value     = a.arg_key || '';
+      // 如果有随机参数列表，默认填一个随机值方便测试
+      var randArgs = a.rand_args || [];
+      if(Array.isArray(randArgs) && randArgs.length && a.arg_key) {
+        document.getElementById('tm_av').value = randArgs[Math.floor(Math.random() * randArgs.length)];
+      } else {
+        document.getElementById('tm_av').value = '';
+      }
+      document.getElementById('tm_headers').value= (a.headers && Object.keys(a.headers).length) ? JSON.stringify(a.headers) : '';
+      document.getElementById('tm_params').value = (a.extra_params && Object.keys(a.extra_params).length) ? JSON.stringify(a.extra_params) : '';
+    }
+  }
+  openModal('testModal');
+}
+
+function runTest(resultId) {
+  var headers = {}, extra = {};
+  try{ headers = JSON.parse(document.getElementById('tm_headers').value || '{}'); }catch(e){}
+  try{ extra = JSON.parse(document.getElementById('tm_params').value || '{}'); }catch(e){}
+  var body = {
+    url:        document.getElementById('tm_url').value.trim(),
+    type:       document.getElementById('tm_type').value,
+    json_path:  document.getElementById('tm_jp').value.trim() || null,
+    arg_key:    document.getElementById('tm_ak').value.trim() || null,
+    arg_val:    document.getElementById('tm_av').value.trim() || null,
+    headers:    headers,
+    extra_params:extra
+  };
+  showTestLoading(resultId);
+  post('/api/item/test', body).then(function(r){ renderTestResult(resultId, r); });
+}
+
+function quickTest() {
+  var d = getItemData();
+  var headers = {}, extra = {};
+  try{ headers = JSON.parse(document.getElementById('im_headers').value || '{}'); }catch(e){}
+  try{ extra = JSON.parse(document.getElementById('im_params').value || '{}'); }catch(e){}
+  // 随机参数列表：测试时也随机选一个值
+  var argVal = null;
+  var randRaw = document.getElementById('im_randargs').value.trim();
+  if(randRaw && d.arg_key) {
+    var randList = randRaw.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+    if(randList.length) argVal = randList[Math.floor(Math.random() * randList.length)];
+  }
+  showTestLoading('qt_result');
+  post('/api/item/test', {url:d.url,type:d.type,json_path:d.json_path,arg_key:d.arg_key,arg_val:argVal,headers:headers,extra_params:extra})
+    .then(function(r){ renderTestResult('qt_result', r); });
+}
+
+function showTestLoading(id) {
+  document.getElementById(id).innerHTML = '<div class="test-box"><div class="test-meta"><span>⏳ 请求中…</span></div></div>';
+}
+
+function renderTestResult(id, r) {
+  var el = document.getElementById(id);
+  if(!r.ok){
+    el.innerHTML = '<div class="test-box"><div class="test-meta"><span class="err-c">❌ ' + esc(r.msg) + '</span></div></div>';
+    return;
+  }
+  var preview = '';
+  var rawHtml = '';
+  if(r.result_type === 'image'){
+    preview = '<img src="data:image/jpeg;base64,' + r.data + '" alt="预览">';
+  } else if(r.result_type === 'image_url'){
+    preview = '<img src="' + esc(r.data) + '" alt="预览" crossorigin="anonymous">';
+  } else if(r.result_type === 'json'){
+    preview = '<pre>' + esc(JSON.stringify(r.data,null,2)) + '</pre>';
+  } else {
+    preview = '<pre>' + esc(String(r.data)) + '</pre>';
+  }
+  if(r.raw){
+    rawHtml = '<span class="raw-toggle" onclick="this.nextElementSibling.classList.toggle(\'show\')">▶ 原始 JSON</span>' +
+      '<div class="raw-block"><pre>' + esc(JSON.stringify(r.raw,null,2)) + '</pre></div>';
+  }
+  el.innerHTML = '<div class="test-box"><div class="test-meta">' +
+    '<span class="ok">✅ 成功</span>' +
+    '<span>耗时 <b style="color:var(--text)">' + r.elapsed + 'ms</b></span>' +
+    '<span>类型 <b style="color:var(--accent)">' + r.result_type + '</b></span>' +
+    '</div>' + preview + rawHtml + '</div>';
+}
+
+// ── 批量导入 ─────────────────────────────────────────
+
+function openImportModal() {
+  var sel = document.getElementById('imp_pool');
+  sel.innerHTML = Object.keys(D.pools).map(function(n){ return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
+  if(cur) sel.value = cur;
+  document.getElementById('imp_json').value = '';
+  document.getElementById('imp_preview').innerHTML = '';
+  openModal('importModal');
+}
+
+function previewImport() {
+  var raw = document.getElementById('imp_json').value.trim();
+  var el = document.getElementById('imp_preview');
+  if(!raw){ el.innerHTML = ''; return; }
+  try{
+    var list = JSON.parse(raw);
+    if(!Array.isArray(list)){ el.innerHTML = '<div style="color:var(--red);font-size:11px;padding:5px">❌ 需要 JSON 数组</div>'; return; }
+    el.innerHTML = '<div style="font-size:11px;color:var(--a3);padding:5px 0">✅ 解析成功，' + list.length + ' 个接口</div>' +
+      '<div class="pv-list">' + list.slice(0,20).map(function(a){
+        return '<div class="pv-item"><div class="pv-name">' + esc(a.name||'?') + '</div><div class="pv-url">' + esc(a.url||'?') + '</div><span class="badge bi">' + (a.type||'image') + '</span></div>';
+      }).join('') + '</div>';
+  } catch(e){ el.innerHTML = '<div style="color:var(--red);font-size:11px;padding:5px">❌ JSON 解析失败</div>'; }
+}
+
+function submitImport() {
+  var pool = document.getElementById('imp_pool').value;
+  var apis;
+  try{ apis = JSON.parse(document.getElementById('imp_json').value); }
+  catch(e){ toast('JSON 格式错误','err'); return; }
+  if(!Array.isArray(apis)){ toast('需要数组格式','err'); return; }
+  post('/api/batch/import', {pool:pool, apis:apis}).then(function(r){
+    if(r.ok){ closeModal('importModal'); load(); setTimeout(function(){ if(cur===pool) renderApis(); },300); toast(r.msg,'ok'); }
+    else toast(r.msg,'err');
+  });
+}
+
+function exportPool() {
+  if(!cur){ toast('请先选择一个池','err'); return; }
+  fetch('/api/batch/export?pool=' + encodeURIComponent(cur)).then(function(r){ return r.json(); }).then(function(data){
+    var blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = cur + '.json';
+    a.click();
+    toast('已导出 ' + data.length + ' 个 API','ok');
+  });
+}
+
+// ── NSFW ─────────────────────────────────────────────
+
+document.getElementById('nsfwSw').addEventListener('change', function(){
+  var enabled = this.checked;
+  post('/api/nsfw', {enabled:enabled}).then(function(r){
+    document.getElementById('nsfwTxt').textContent = r.nsfw_enabled ? '开' : '关';
+    toast('NSFW ' + (r.nsfw_enabled?'已开启':'已关闭'),'ok');
+  });
+});
+
+// ── 工具 ─────────────────────────────────────────────
+
+function post(url, body) {
+  return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+    .then(function(r){ return r.json(); })
+    .catch(function(e){ return {ok:false, msg:e.message}; });
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.mb').forEach(function(m){
+  m.addEventListener('click', function(e){ if(e.target===m) m.classList.remove('open'); });
+});
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+var toastTimer;
+function toast(msg, type) {
+  type = type || 'ok';
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.className = ''; }, 3000);
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "web_port": {
+    "type": "int",
+    "title": "Web 管理面板端口",
+    "description": "默认 6789，与内网穿透映射的内网端口一致",
+    "default": 6789
+  }
+}
