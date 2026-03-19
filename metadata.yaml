@@ -1,4 +1,4 @@
-name: API HUB
+name: astrbot_plugin_apihub
 desc: API HUB：API 池可视化管理，触发词动态注册，支持图片/文字/JSON/视频/音频
 author: s-3-s
 repo: https://github.com/s-3-s/astrbot_plugin_apihub

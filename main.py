@@ -25,42 +25,60 @@ async def _session() -> aiohttp.ClientSession:
 def _render(tpl: str, data) -> str:
     """
     支持以下语法：
-      {data.key}           取单个值
-      {data[0].key}        取数组指定下标
-      {data[*].time} ...   遍历数组，每行一条（含 [*] 的整行会被展开）
+      {data.key}            取单个值
+      {data[0].key}         取数组指定下标
+      {% for data[*] %}     正序遍历块开始（旧→新）
+      {% for data[~] %}     倒序遍历块开始（新→旧）
+      {% end %}             遍历块结束
+      块内可写任意行，每条记录输出完整一块
+      块内用 {item.key} 或直接 {key} 引用当前项的字段
     """
-    lines = tpl.split("\n")
+    # ── 块级 for 标签处理 ────────────────────────────────
+    FOR_PAT  = re.compile(r'\{%\s*for\s+(\S+?)\[(\*|~)\]\s*%\}')
+    END_PAT  = re.compile(r'\{%\s*end\s*%\}')
+
+    lines  = tpl.split("\n")
     result = []
-    for line in lines:
-        # 检查这一行是否含有 [*] 遍历语法
-        if "[*]" in line:
-            # 提取遍历的列表路径，如 data[*].context -> 列表路径=data，字段模板=.context
-            m = re.search(r'\{([^}]*?)\[\*\]([^}]*)\}', line)
-            if m:
-                list_path = m.group(1).rstrip(".")  # 列表根路径
-                item_list = resolve_path(data, list_path) if list_path else data
-                if isinstance(item_list, list):
-                    for item in item_list:
-                        # 替换这行里所有 {xxx[*].yyy} 为 item 的对应值
-                        def _rep_item(mm, _item=item):
-                            p = mm.group(1).rstrip(".") 
-                            # 去掉 list_path 前缀，取后面的子路径
-                            sub = mm.group(2).lstrip(".")
-                            v = resolve_path(_item, sub) if sub else _item
-                            return str(v) if v is not None else ""
-                        expanded = re.sub(r'\{([^}]*?)\[\*\]([^}]*)\}', _rep_item, line)
-                        result.append(expanded)
-                    continue
-        # 普通行，正常替换 {路径}
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        fm = FOR_PAT.match(line.strip())
+        if fm:
+            list_path = fm.group(1).rstrip(".")
+            reverse   = fm.group(2) == "~"
+            # 收集块内容直到 {% end %}
+            block = []
+            i += 1
+            while i < len(lines) and not END_PAT.match(lines[i].strip()):
+                block.append(lines[i])
+                i += 1
+            i += 1  # 跳过 {% end %}
+
+            item_list = resolve_path(data, list_path) if list_path else data
+            if isinstance(item_list, list):
+                items = list(reversed(item_list)) if reverse else item_list
+                for item in items:
+                    for bline in block:
+                        def _rep(mm, _i=item):
+                            path = mm.group(1).strip()
+                            # 支持 item.xxx 或直接 xxx
+                            if path.startswith("item."):
+                                path = path[5:]
+                            v = resolve_path(_i, path)
+                            return str(v) if v is not None else f"[{path}]"
+                        result.append(re.sub(r'\{([^}]+)\}', _rep, bline))
+            continue
+
+        # ── 普通行 ───────────────────────────────────────
         def _r(mm):
             path = mm.group(1).strip()
-            # 支持 data[0].key 下标语法
             path_fixed = re.sub(r'\[(\d+)\]', r'.\1', path)
             v = resolve_path(data, path_fixed)
             return str(v) if v is not None else f"[{path}]"
         result.append(re.sub(r'\{([^}]+)\}', _r, line))
-    return "\n".join(result)
+        i += 1
 
+    return "\n".join(result)
 
 @register("astrbot_plugin_apihub", "s-3-s",
           "API HUB：API 池可视化管理，触发词动态注册", "1.0.0",
