@@ -46,7 +46,6 @@ def _render(tpl: str, data) -> str:
         if fm:
             list_path = fm.group(1).rstrip(".")
             reverse   = fm.group(2) == "~"
-            # 收集块内容直到 {% end %}
             block = []
             i += 1
             while i < len(lines) and not END_PAT.match(lines[i].strip()):
@@ -61,7 +60,6 @@ def _render(tpl: str, data) -> str:
                     for bline in block:
                         def _rep(mm, _i=item):
                             path = mm.group(1).strip()
-                            # 支持 item.xxx 或直接 xxx
                             if path.startswith("item."):
                                 path = path[5:]
                             v = resolve_path(_i, path)
@@ -318,7 +316,9 @@ class ApiPlugin(Star):
         return [Comp.Video(file=tmp.name)]
 
     async def _dl_audio(self, url: str) -> list:
-        """下载音频到临时文件，30秒后自动删除"""
+        """下载音频，用 ffmpeg 转换为标准 WAV 后发送"""
+        tmp_src = None
+        tmp_wav = None
         try:
             s = await _session()
             async with s.get(url, timeout=aiohttp.ClientTimeout(total=30),
@@ -326,19 +326,46 @@ class ApiPlugin(Star):
                 if r.status != 200: raise Exception(f"HTTP {r.status}")
                 data = await r.read()
             if len(data) < 512: raise Exception("音频内容异常")
+
             # 根据 Content-Type 判断后缀
-            suffix = ".mp3"
             ct = r.content_type or ""
             if "ogg" in ct or "opus" in ct: suffix = ".ogg"
             elif "wav" in ct: suffix = ".wav"
             elif "aac" in ct: suffix = ".aac"
-            tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
-            tmp.write(data); tmp.close()
-            asyncio.get_event_loop().create_task(self._del(tmp.name))
+            else: suffix = ".mp3"
+
+            # 保存原始文件
+            tmp_src = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+            tmp_src.write(data); tmp_src.close()
             logger.info(f"[APIHub] 音频下载完成 {len(data)//1024}KB")
-            return [Comp.Record(file=tmp.name)]
+
+            # 用 ffmpeg 转换为标准 PCM WAV
+            tmp_wav = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            tmp_wav.close()
+            proc = await asyncio.create_subprocess_exec(
+                "ffmpeg", "-y", "-i", tmp_src.name,
+                "-ar", "24000", "-ac", "1", "-f", "wav", tmp_wav.name,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            await proc.wait()
+
+            if proc.returncode != 0:
+                # ffmpeg 不可用或转换失败，直接发原始文件
+                logger.warning("[APIHub] ffmpeg 转换失败，尝试直接发送原始文件")
+                asyncio.get_event_loop().create_task(self._del(tmp_src.name))
+                return [Comp.Record(file=tmp_src.name)]
+
+            asyncio.get_event_loop().create_task(self._del(tmp_src.name))
+            asyncio.get_event_loop().create_task(self._del(tmp_wav.name))
+            return [Comp.Record(file=tmp_wav.name)]
+
         except Exception as e:
             logger.warning(f"[APIHub] 音频下载失败: {e}")
+            for p in [tmp_src, tmp_wav]:
+                if p:
+                    try: os.unlink(p.name)
+                    except: pass
             return [Comp.Plain(f"❌ 音频下载失败：{e}")]
 
     async def _dl_video(self, url: str) -> list:
